@@ -1,0 +1,9 @@
+services:
+  backend:
+    build: .
+    ports:
+      - "3000:3000"   # Бэкенд и статика Vue будут доступны здесь
+    environment:
+      - CASHCODE_TCP=host.docker.internal:7000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
