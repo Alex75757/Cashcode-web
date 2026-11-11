@@ -176,23 +176,6 @@ WebSocket для отладочного UI. События:
 - `WARN cashcode_web: timeout waiting for UnitDisabled after stack` — `poll` не дошёл до `UnitDisabled`/`Idling` (увеличьте таймаут или проверьте DIP/скорость).
 - `ERROR cashcode_web: Poll error: ...` — ошибка связи, `cashcode-web` пытается `initialize()` заново.
 
-## Troubleshooting
-
-| Симптом | Причина | Решение |
-|---|---|---|
-| `Failed to open device: ...` | COM-порт занят (`testCCnet2.19`, другой процесс) или неверное имя | Закройте всё, что держит COM; проверьте `CASHCODE_PORT` (`COM4`, `/dev/ttyUSB0`) |
-| `Initialization failed: Timeout` | Устройство не отвечает на `RESET` | Проверьте DIP скорости (9600/19200), DIP Host Mode (`SW2.4`), кабель |
-| `Initialization failed: I/O error: Broken pipe` | Мост (`socat`/TCP) рвёт соединение | Если `cashcode-web` запущен **нативно** (не через `socat`) — проверьте кабель/драйвер. `socat`/PTY больше не используются |
-| Индикатор **красный ровно** после старта | `disable()` после `initialize()` — штатно | Это правильно: до cash-заказа не принимает. `POST /api/enable` → зелёный |
-| Индикатор **красный ровно** после `enable` | DIP `SW2.4` в Service Mode, или скорость не совпадает | `SW2.4` = Host Mode; скорость `socat`/`cashcode` = DIP (`SW2.3`) |
-| Индикатор **мигает N раз** | Код ошибки (кассета/замятие/датчики) | 1 — нет кассеты, 3 — полна, 4 — замятие, 6 — датчики, 12 — замятие на входе. Почистить/проверить |
-| После `BillStacked` индикатор красный, следующая купюра не принимается | `enable` после stack не сработал (`timeout waiting for UnitDisabled`, DIP/скорость) | Смотрите логи `timeout waiting for UnitDisabled after stack`; проверьте DIP/скорость; `poll` после `enable` — какое состояние |
-| `bill_table_loaded: false`, `amount_rub: 0.0` | `GET_BILL_TABLE` не загрузился | Перезапустите `cashcode-web`; проверьте логи `Failed to get bill table` |
-| `no method named with_filter` при сборке | Не импортирован `Layer` | `use tracing_subscriber::layer::Layer;` |
-| `undeclared type BillMask` | `BillMask` не импортирован | `use cashcode::BillMask;` (в 0.1.1 реэкспортируется из `command`) |
-| `DEBUG cashcode::device` бежит | Фильтр `tracing` без `cashcode=info` | `EnvFilter::new("info,cashcode=info")` или `RUST_LOG=info,cashcode=info` |
-| `$env:RUST_LOG = "info" \| .\cashcode-web.exe` — нет вывода | `\|` — pipe, не последовательность | `$env:RUST_LOG = "info"; .\cashcode-web.exe` (через `;`) |
-
 ## Структура проекта
 
 ```
@@ -221,4 +204,4 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 ## Лицензия
 
-Внутренний проект. Не распространяется отдельно от `laundry-stats` без договора.
+Внутренний проект. Не распространяется отдельно от `pra4ka` без договора.
