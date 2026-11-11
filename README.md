@@ -87,10 +87,6 @@ CASHCODE_PORT=/dev/ttyUSB0 RUST_LOG="info,cashcode=info" ./target/release/cashco
 $env:RUST_LOG = "info,cashcode_web=debug,cashcode=info"
 ```
 
-`cashcode_web` — имя модуля крейта (`Cargo.toml` `name = "cashcode-web"` → `cashcode_web`).
-
-> **Важно:** в PowerShell `$env:RUST_LOG = "info"; .\cashcode-web.exe` — две команды через `;` (не `|`, иначе переменная не установится, и процесс получит пустой stdin).
-
 ## HTTP API
 
 Базовый URL: `http://<host>:3000`.
@@ -157,31 +153,6 @@ WebSocket для отладочного UI. События:
 - `{"type":"BillReturned","data":{"bill_type":2}}`
 - `{"type":"Error","data":{"message":"..."}}`
 
-## Жизненный цикл устройства
-
-1. **Старт `cashcode-web`**: `open(COM4)` → `initialize()` → `disable()`.
-   - `initialize()`: `RESET` → `poll` до `Idling` → `GET_BILL_TABLE` → `ENABLE`.
-   - `disable()`: индикатор **красный**, купюры **не принимает**.
-2. **`laundry-stats` создаёт cash-заказ**: `POST /api/reset` + `POST /api/enable`.
-   - `total_rub = 0`, индикатор **зелёный**, приём.
-3. **Клиент вставляет купюру**: `EscrowPosition` → `cashcode-web` делает `stack()`.
-   - `BillStacked` → номинал из `bill_table` → `total_rub += amount` → ждём `UnitDisabled`/`Idling` → `enable` (следующая купюра).
-4. **`total_rub >= amount_rub`** (проверяет `laundry-stats` через `/api/status`): `laundry-stats` помечает заказ `paid`, публикует `payment_received` + `start`, затем `POST /api/disable` + `POST /api/reset`.
-   - индикатор **красный**, приём выключен.
-5. **Новый cash-заказ**: снова `POST /api/reset` + `POST /api/enable` → зелёный.
-6. **Отмена cash-заказа**: `POST /api/return` (вернуть купюру из escrow) + `POST /api/disable` + `POST /api/reset` → красный.
-
-## Индикатор
-
-- **Зелёный** — приём разрешён (`enable`), можно вставлять купюры.
-- **Красный ровно** — `UnitDisabled` (приём выключен). Это **штатное** состояние до cash-заказа, после оплаты, после отмены. `enable` возвращает зелёный.
-- **Красный мигает N раз** — код ошибки (CashCode):
-  - 1 — кассета не установлена;
-  - 3 — кассета полна;
-  - 4 — замятие в кассете;
-  - 6 — загрязнены оптические датчики;
-  - 12 — замятие на входе.
-  Если мигает — `enable` не поможет, пока не устранена причина (почистить, проверить кассету).
 
 ## Номиналы купюр
 
@@ -204,8 +175,6 @@ WebSocket для отладочного UI. События:
 - `INFO cashcode_web: Device re-enabled after stack (should be green)`.
 - `WARN cashcode_web: timeout waiting for UnitDisabled after stack` — `poll` не дошёл до `UnitDisabled`/`Idling` (увеличьте таймаут или проверьте DIP/скорость).
 - `ERROR cashcode_web: Poll error: ...` — ошибка связи, `cashcode-web` пытается `initialize()` заново.
-
-`DEBUG cashcode::device` **не идёт** (фильтр `cashcode=info`). `INFO cashcode::...` (если крейт что-то логирует) — остаётся.
 
 ## Troubleshooting
 
@@ -253,4 +222,3 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 ## Лицензия
 
 Внутренний проект. Не распространяется отдельно от `laundry-stats` без договора.
-о как)
